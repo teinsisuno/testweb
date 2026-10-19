@@ -1,0 +1,521 @@
+/* =================================================================
+   Jam Jadwal Sholat — Gaya utama
+   Kanvas desain tampilan: 1920 x 1080 (rem diskalakan oleh JS)
+   ================================================================= */
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #05070b;
+    color: #e8edf5;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+#app { height: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; }
+img, video, svg { display: block; max-width: 100%; }
+a { color: inherit; }
+
+/* -----------------------------------------------------------------
+   Splash
+   ----------------------------------------------------------------- */
+#boot-splash {
+    position: fixed; inset: 0; z-index: 9999;
+    display: grid; place-items: center;
+    background: radial-gradient(120% 120% at 50% 0%, #0f5f4a 0%, #0b2b26 45%, #050a09 100%);
+    transition: opacity .5s ease, visibility .5s;
+}
+#boot-splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+.bs-inner { text-align: center; }
+.bs-logo img { width: 96px; height: 96px; margin: 0 auto 1rem; animation: bsPulse 2s ease-in-out infinite; }
+@keyframes bsPulse { 0%,100% { transform: scale(1); opacity: .95 } 50% { transform: scale(1.06); opacity: 1 } }
+.bs-title { font-size: 1.35rem; font-weight: 700; letter-spacing: .02em; }
+.bs-sub { font-size: .9rem; opacity: .65; margin-top: .35rem; }
+.bs-bar { width: 180px; height: 4px; border-radius: 99px; background: rgba(255,255,255,.15); margin: 1.1rem auto 0; overflow: hidden; }
+.bs-bar span { display: block; width: 40%; height: 100%; border-radius: 99px; background: #34d399; animation: bsSlide 1.2s ease-in-out infinite; }
+@keyframes bsSlide { 0% { margin-left: -40% } 100% { margin-left: 100% } }
+
+/* =================================================================
+   TAMPILAN UTAMA (TV / layar masjid)
+   ================================================================= */
+.tv {
+    position: fixed; inset: 0;
+    overflow: hidden;
+    background: #05070b;
+    color: #fff;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.tv.hide-cursor { cursor: none; }
+
+/* --- Lapisan latar / slideshow --- */
+.stage { position: absolute; inset: 0; overflow: hidden; background: #05070b; }
+.slide {
+    position: absolute; inset: 0;
+    opacity: 0;
+    transition: opacity 1.1s ease, transform 6s linear;
+    will-change: opacity, transform;
+}
+.slide > img, .slide > video {
+    width: 100%; height: 100%; object-fit: cover;
+    object-position: center;
+}
+.slide.is-active { opacity: 1; }
+.slide.anim-zoom.is-active { transform: scale(1.08); }
+.slide.anim-slide { transition: opacity .8s ease, transform .9s cubic-bezier(.22,.61,.36,1); transform: translateX(6%); }
+.slide.anim-slide.is-active { transform: translateX(0); }
+.tv .dim { position: absolute; inset: 0; background: #000; pointer-events: none; }
+
+.tv .vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+        linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%);
+}
+
+/* --- Pembungkus UI (skala rem) --- */
+.ui { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+/* -----------------------------------------------------------------
+   Bilah atas
+   ----------------------------------------------------------------- */
+.topbar { position: relative; padding: 1.6rem 2.4rem 0; flex: 0 0 auto; }
+.topbar::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 24rem; pointer-events: none;
+    background: linear-gradient(180deg,
+        rgba(255,255,255,var(--topFade, .92)) 0%,
+        rgba(255,255,255,calc(var(--topFade, .92) * .82)) 30%,
+        rgba(255,255,255,calc(var(--topFade, .92) * .45)) 62%,
+        rgba(255,255,255,calc(var(--topFade, .92) * .14)) 84%,
+        rgba(255,255,255,0) 100%);
+}
+.topbar .row1 {
+    position: relative;
+    display: grid; grid-template-columns: minmax(14rem, auto) 1fr minmax(14rem, auto);
+    align-items: start; gap: 1.5rem;
+}
+.clock-wrap { display: flex; flex-direction: column; }
+.clock {
+    font-size: 7.6rem; font-weight: 800; line-height: .92;
+    letter-spacing: -.035em; color: var(--textTop, #0b1220);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 0 rgba(255,255,255,.5);
+    display: flex; align-items: baseline; gap: .12em;
+}
+.clock .ampm { font-size: 2.6rem; font-weight: 700; letter-spacing: 0; opacity: .8; }
+.clock .sec { font-size: 3.2rem; font-weight: 700; opacity: .55; letter-spacing: 0; }
+.clock-wrap .islamic-greet { font-size: 1.5rem; font-weight: 600; color: var(--textTop, #0b1220); opacity: .72; margin-top: .1rem; }
+
+.mosque { text-align: center; padding-top: .5rem; display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.mosque .logo { width: 4.2rem; height: 4.2rem; border-radius: 1rem; object-fit: cover; box-shadow: 0 .3rem 1rem rgba(0,0,0,.25); }
+.mosque-name {
+    display: flex; align-items: center; justify-content: center; gap: .7rem;
+    font-size: 2.4rem; font-weight: 800; color: var(--textTop, #0b1220); letter-spacing: -.01em;
+    line-height: 1.1; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; max-width: 100%;
+}
+.mosque-name svg { width: 2.6rem; height: 2.6rem; flex: 0 0 auto; }
+.mosque-addr { font-size: 1.35rem; color: var(--textTop, #0b1220); opacity: .72; max-width: 46rem; line-height: 1.25; }
+
+.dates { text-align: right; padding-top: .3rem; }
+.dates .hijri { font-size: 2rem; font-weight: 800; color: var(--textTop, #0b1220); line-height: 1.15; white-space: nowrap; }
+.dates .greg { font-size: 1.35rem; color: var(--textTop, #0b1220); opacity: .72; white-space: nowrap; }
+
+.topbar .row2 {
+    position: relative;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    margin-top: 1.5rem;
+}
+.pill {
+    display: inline-flex; align-items: center; gap: .7rem;
+    font-size: 1.45rem; font-weight: 700;
+    padding: .65rem 1.4rem; border-radius: 999px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: transform .15s ease, background .2s ease, opacity .2s;
+    white-space: nowrap;
+}
+.pill svg { width: 1.6rem; height: 1.6rem; }
+.pill-muadzin { background: rgba(8,12,18,.42); color: #fff; box-shadow: 0 .3rem 1rem rgba(0,0,0,.2); }
+.pill-muadzin:hover { background: rgba(8,12,18,.6); transform: translateY(-1px); }
+.pill-muadzin.on { background: #0f8a3c; }
+.pill-muadzin.on .dot { background: #6ef2a0; }
+.pill-muadzin .dot { width: .7rem; height: .7rem; border-radius: 50%; background: rgba(255,255,255,.45); }
+.pill-holiday {
+    background: linear-gradient(180deg, #e23b3b, #c81f1f);
+    color: #fff;
+    box-shadow: 0 .4rem 1.2rem rgba(200,30,30,.35);
+    text-transform: uppercase; letter-spacing: .01em;
+}
+.pill-holiday .hname { text-transform: uppercase; }
+.pill-holiday .hcount { font-weight: 800; }
+.pill-holiday.is-today { background: linear-gradient(180deg, #16a34a, #0f8a3c); box-shadow: 0 .4rem 1.2rem rgba(20,160,70,.4); animation: pulseToday 1.8s ease-in-out infinite; }
+@keyframes pulseToday { 0%,100% { filter: brightness(1) } 50% { filter: brightness(1.22) } }
+
+/* Tombol ikon melayang */
+.float-btns { position: absolute; right: 1.6rem; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: .8rem; z-index: 5; }
+.icon-btn {
+    width: 3rem; height: 3rem; border-radius: 50%;
+    display: grid; place-items: center;
+    background: rgba(8,12,18,.4); color: #fff;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 .3rem 1rem rgba(0,0,0,.25);
+    transition: background .2s, transform .15s, opacity .2s;
+    opacity: .55;
+}
+.icon-btn:hover { background: rgba(8,12,18,.7); transform: scale(1.06); opacity: 1; }
+.icon-btn svg { width: 1.4rem; height: 1.4rem; }
+.tv:hover .icon-btn { opacity: .9; }
+
+/* -----------------------------------------------------------------
+   Bilah bawah: jadwal sholat + running text
+   ----------------------------------------------------------------- */
+.bottombar { margin-top: auto; flex: 0 0 auto; }
+.prayers {
+    display: flex; align-items: stretch; justify-content: center;
+    background: var(--barBg, rgba(12,16,22,.62));
+    backdrop-filter: blur(var(--barBlur, 10px)); -webkit-backdrop-filter: blur(var(--barBlur, 10px));
+    border-top: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 -1rem 3rem rgba(0,0,0,.35);
+    padding: .9rem 1rem;
+    gap: .35rem;
+}
+.prayer {
+    position: relative; flex: 1 1 0; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: .1rem; padding: .55rem .3rem; border-radius: 1.1rem;
+    transition: background .35s ease, transform .35s ease, box-shadow .35s;
+}
+.prayer + .prayer::before {
+    content: ""; position: absolute; left: -.18rem; top: 18%; bottom: 18%; width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(255,255,255,.35), transparent);
+}
+.prayer .p-label {
+    font-size: 1.7rem; font-weight: 600; color: rgba(255,255,255,.82);
+    letter-spacing: .01em; line-height: 1.1; white-space: nowrap;
+}
+.prayer .p-time {
+    font-size: 3rem; font-weight: 800; line-height: 1.05; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums; color: #fff; white-space: nowrap;
+}
+.prayer .p-tag { font-size: 1.05rem; font-weight: 700; opacity: .85; letter-spacing: .02em; }
+.prayer.is-active {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent, #ff8a00) 100%, #fff 6%), var(--accent, #ff8a00));
+    color: var(--accentText, #fff);
+    transform: translateY(-.55rem);
+    box-shadow: 0 .6rem 1.6rem color-mix(in srgb, var(--accent, #ff8a00) 45%, transparent);
+    z-index: 2;
+}
+.prayer.is-active .p-label { color: var(--accentText, #fff); opacity: 1; }
+.prayer.is-active .p-time { color: var(--accentText, #fff); font-size: 3.4rem; }
+.prayer.is-active::before, .prayer.is-active + .prayer::before { opacity: 0; }
+.prayer.is-next .p-label { color: #fff; }
+.prayer.is-passed .p-label { opacity: .62; }
+.prayer.is-passed .p-time { opacity: .88; }
+
+/* Running text */
+.ticker {
+    position: relative; overflow: hidden;
+    background: var(--tickerBg, #0f8a3c); color: var(--tickerColor, #fff);
+    height: 3.2rem; display: flex; align-items: center;
+}
+.ticker .track {
+    display: inline-flex; align-items: center; white-space: nowrap;
+    font-size: 1.7rem; font-weight: 600; letter-spacing: .01em;
+    will-change: transform; padding-left: 100%;
+    animation: tickerMove var(--tickerDur, 40s) linear infinite;
+}
+.ticker .track span.sep { opacity: .55; padding: 0 .4rem; }
+@keyframes tickerMove { from { transform: translateX(0) } to { transform: translateX(-100%) } }
+.ticker.paused .track { animation-play-state: paused; }
+
+/* Kartu hitung mundur terpisah — diletakkan di atas bilah jadwal, sisi kanan */
+.next-row {
+    display: flex; justify-content: flex-end;
+    padding: 0 2.4rem .8rem;
+    pointer-events: none;
+}
+.next-card {
+    display: flex; align-items: center; gap: 1.1rem;
+    padding: .85rem 1.6rem; border-radius: 1.1rem;
+    background: rgba(10,14,20,.72);
+    border: 1px solid rgba(255,255,255,.16);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 .8rem 2.2rem rgba(0,0,0,.4);
+    color: #fff;
+    transition: background .35s ease, border-color .35s ease, box-shadow .35s;
+}
+.next-card .nc-tag {
+    font-size: 1.15rem; font-weight: 800; letter-spacing: .12em;
+    padding: .3rem .8rem; border-radius: 999px;
+    background: color-mix(in srgb, var(--accent, #ff8a00) 32%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent, #ff8a00) 60%, transparent);
+    color: #fff; text-transform: uppercase;
+}
+.next-card .nc-body { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.next-card .nc-caption {
+    font-size: 1.15rem; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; opacity: .68;
+}
+.next-card .nc-title { font-size: 1.7rem; font-weight: 700; }
+.next-card .nc-value {
+    font-size: 3.4rem; font-weight: 800; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums; color: var(--accent, #ff8a00);
+}
+.next-card.alert {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent, #ff8a00) 88%, #000 12%), var(--accent, #ff8a00));
+    border-color: transparent;
+    box-shadow: 0 .8rem 2.4rem color-mix(in srgb, var(--accent, #ff8a00) 45%, transparent);
+    animation: ncPulse 1.6s ease-in-out infinite;
+}
+.next-card.alert .nc-title,
+.next-card.alert .nc-caption { color: var(--accentText, #fff); }
+.next-card.alert .nc-caption { opacity: .9; }
+.next-card.alert .nc-value { color: var(--accentText, #fff); }
+.next-card.alert .nc-tag { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.45); }
+@keyframes ncPulse { 0%,100% { filter: brightness(1) } 50% { filter: brightness(1.12) } }
+
+/* Layar hitam penuh saat iqomah & sholat berjamaah */
+.sholat-screen {
+    position: fixed; inset: 0; z-index: 100;
+    background: #000;
+    display: grid; place-items: center;
+    text-align: center; padding: 6vh 6vw;
+}
+.sholat-screen .ss-inner { max-width: 90vw; }
+.sholat-screen .ss-icon { width: 6rem; height: 6rem; margin: 0 auto 2.2rem; opacity: .38; }
+.sholat-screen .ss-icon svg { width: 100%; height: 100%; stroke: #fff; }
+.sholat-screen .ss-text {
+    color: #fff; font-weight: 700; letter-spacing: .01em;
+    font-size: 4.4rem; line-height: 1.25;
+}
+.sholat-screen .ss-remain {
+    margin-top: 2.4rem; color: rgba(255,255,255,.42);
+    font-size: 2rem; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* Banner pra-adzan */
+.banner {
+    position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
+    z-index: 30; display: flex; align-items: center; gap: 1rem;
+    padding: .9rem 1.8rem; border-radius: 999px;
+    background: rgba(8,12,18,.72); border: 1px solid rgba(255,255,255,.16);
+    backdrop-filter: blur(10px); font-size: 1.6rem; font-weight: 700;
+    box-shadow: 0 1rem 2.6rem rgba(0,0,0,.4);
+}
+.banner .hl { color: var(--accent, #ff8a00); }
+
+/* Toast kecil */
+.toasts { position: fixed; right: 1rem; bottom: 1rem; z-index: 200; display: flex; flex-direction: column; gap: .5rem; }
+.toast {
+    background: #101826; border: 1px solid rgba(255,255,255,.12); color: #e8edf5;
+    padding: .7rem 1rem; border-radius: .7rem; font-size: .9rem; max-width: 22rem;
+    box-shadow: 0 1rem 2rem rgba(0,0,0,.4); animation: toastIn .25s ease;
+}
+.toast.ok { border-color: rgba(52,211,153,.5); }
+.toast.err { border-color: rgba(248,113,113,.55); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(.5rem) } to { opacity: 1; transform: none } }
+
+/* Transisi vue */
+.fade-enter-active, .fade-leave-active { transition: opacity .35s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* =================================================================
+   HALAMAN LOGIN
+   ================================================================= */
+.auth-wrap {
+    position: fixed; inset: 0; display: grid; place-items: center; overflow: auto;
+    background: radial-gradient(120% 120% at 20% 0%, #14523f 0%, #0b2b26 40%, #060c0b 100%);
+    font-size: 16px; padding: 1.5rem;
+}
+.auth-wrap::before {
+    content: ""; position: absolute; inset: 0; opacity: .1;
+    background-image: linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%),
+                      linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%);
+    background-size: 60px 60px; background-position: 0 0, 30px 30px;
+}
+.auth-card {
+    position: relative; width: 100%; max-width: 400px;
+    background: rgba(12,18,26,.82); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 1.2rem; padding: 2.2rem; backdrop-filter: blur(14px);
+    box-shadow: 0 2rem 5rem rgba(0,0,0,.55);
+}
+.auth-card .logo { width: 66px; height: 66px; margin: 0 auto 1rem; }
+.auth-card h1 { font-size: 1.3rem; margin: 0 0 .25rem; text-align: center; }
+.auth-card p.sub { text-align: center; color: #93a4bb; font-size: .88rem; margin: 0 0 1.6rem; }
+
+.field { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .9rem; }
+.field label { font-size: .8rem; font-weight: 600; color: #9fb0c6; letter-spacing: .02em; }
+.input, select.input, textarea.input {
+    width: 100%; padding: .68rem .85rem; border-radius: .6rem;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);
+    color: #eaf0f8; outline: none; transition: border-color .2s, background .2s; font-size: .93rem;
+}
+.input:focus { border-color: #34d399; background: rgba(255,255,255,.08); }
+.input[type="color"] { padding: .2rem; height: 2.6rem; }
+.input[type="range"] { padding: 0; }
+
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    padding: .7rem 1.1rem; border-radius: .6rem; font-weight: 700; font-size: .9rem;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+    color: #eaf0f8; transition: background .2s, transform .15s, border-color .2s; white-space: nowrap;
+}
+.btn:hover { background: rgba(255,255,255,.14); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(180deg, #10b981, #0f8a3c); border-color: transparent; color: #fff; }
+.btn-primary:hover { background: linear-gradient(180deg, #16c78e, #0f9a45); }
+.btn-danger { background: rgba(248,113,113,.16); border-color: rgba(248,113,113,.4); color: #fca5a5; }
+.btn-danger:hover { background: rgba(248,113,113,.26); }
+.btn-ghost { background: transparent; border-color: rgba(255,255,255,.16); }
+.btn-sm { padding: .42rem .7rem; font-size: .8rem; border-radius: .5rem; }
+.btn-block { width: 100%; }
+.err-msg { color: #fca5a5; font-size: .84rem; margin: .5rem 0 0; min-height: 1.1rem; }
+.auth-card .hint { margin-top: 1.2rem; font-size: .78rem; color: #7d8ea6; text-align: center; line-height: 1.5; }
+.auth-card .hint code { background: rgba(255,255,255,.08); padding: .1rem .35rem; border-radius: .3rem; }
+
+/* =================================================================
+   PANEL ADMIN
+   ================================================================= */
+.admin {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    background: #0b0f16; color: #e6ecf5; font-size: 14px; overflow: hidden;
+}
+.admin-top {
+    display: flex; align-items: center; gap: 1rem;
+    padding: .7rem 1rem; background: #0f1520; border-bottom: 1px solid rgba(255,255,255,.08);
+    flex: 0 0 auto;
+}
+.admin-top .brand { display: flex; align-items: center; gap: .6rem; font-weight: 700; }
+.admin-top .brand img { width: 28px; height: 28px; border-radius: .4rem; }
+.admin-top .spacer { flex: 1; }
+.admin-top .who { font-size: .8rem; color: #94a6bd; }
+.admin-body { display: flex; flex: 1; overflow: hidden; }
+.admin-nav {
+    width: 232px; flex: 0 0 auto; background: #0d131d; border-right: 1px solid rgba(255,255,255,.07);
+    padding: .8rem; overflow-y: auto;
+}
+.admin-nav button {
+    display: flex; align-items: center; gap: .6rem; width: 100%;
+    padding: .6rem .7rem; border-radius: .55rem; color: #a9b8cc; font-size: .88rem; text-align: left;
+    transition: background .15s, color .15s; margin-bottom: .15rem;
+}
+.admin-nav button:hover { background: rgba(255,255,255,.05); color: #e6ecf5; }
+.admin-nav button.active { background: rgba(16,185,129,.14); color: #34d399; font-weight: 700; }
+.admin-nav .navgroup { font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: #55647a; padding: .8rem .7rem .3rem; }
+.admin-main { flex: 1; overflow-y: auto; padding: 1.2rem 1.4rem 4rem; }
+.admin-main h2 { margin: 0 0 .2rem; font-size: 1.25rem; }
+.admin-main .page-sub { color: #8b9cb3; font-size: .85rem; margin-bottom: 1.2rem; }
+
+.card {
+    background: #101827; border: 1px solid rgba(255,255,255,.08); border-radius: .8rem;
+    padding: 1rem 1.1rem; margin-bottom: 1rem;
+}
+.card > h3 { margin: 0 0 .8rem; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+.card .card-sub { color: #8b9cb3; font-size: .8rem; margin: -.4rem 0 .9rem; }
+.grid { display: grid; gap: .9rem; }
+.grid.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.grid.cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.grid.cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+@media (max-width: 1000px) { .grid.cols-3, .grid.cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 700px) { .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; } }
+.row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.muted { color: #8b9cb3; }
+.small { font-size: .8rem; }
+.mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.switch { display: flex; align-items: center; gap: .6rem; cursor: pointer; padding: .35rem 0; }
+.switch input { position: absolute; opacity: 0; pointer-events: none; }
+.switch .track {
+    width: 42px; height: 24px; border-radius: 99px; background: rgba(255,255,255,.16);
+    position: relative; transition: background .2s; flex: 0 0 auto;
+}
+.switch .track::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: #fff; transition: transform .2s;
+}
+.switch input:checked + .track { background: #10b981; }
+.switch input:checked + .track::after { transform: translateX(18px); }
+
+table.tbl { width: 100%; border-collapse: collapse; font-size: .85rem; }
+table.tbl th { text-align: left; padding: .5rem .6rem; color: #8b9cb3; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,.1); white-space: nowrap; }
+table.tbl td { padding: .5rem .6rem; border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: middle; }
+table.tbl tr:hover td { background: rgba(255,255,255,.02); }
+
+.thumb { width: 84px; height: 48px; border-radius: .4rem; object-fit: cover; background: #1b2536; }
+.badge { display: inline-block; padding: .15rem .5rem; border-radius: 99px; font-size: .72rem; font-weight: 700; background: rgba(255,255,255,.1); }
+.badge.on { background: rgba(16,185,129,.2); color: #34d399; }
+.badge.off { background: rgba(248,113,113,.18); color: #fca5a5; }
+.badge.info { background: rgba(96,165,250,.18); color: #93c5fd; }
+
+.preview-box {
+    border-radius: .8rem; overflow: hidden; border: 1px solid rgba(255,255,255,.1);
+    background: #060a10; position: relative; aspect-ratio: 16/9;
+}
+.preview-box iframe { width: 100%; height: 100%; border: 0; }
+
+.drop {
+    border: 2px dashed rgba(255,255,255,.2); border-radius: .8rem; padding: 1.4rem;
+    text-align: center; color: #8b9cb3; transition: border-color .2s, background .2s; cursor: pointer;
+}
+.drop.over { border-color: #10b981; background: rgba(16,185,129,.07); }
+
+.picker { position: relative; }
+.picker .list {
+    position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + .25rem);
+    background: #131c2b; border: 1px solid rgba(255,255,255,.14); border-radius: .6rem;
+    max-height: 240px; overflow-y: auto; box-shadow: 0 1rem 2rem rgba(0,0,0,.5);
+}
+.picker .list button { display: block; width: 100%; text-align: left; padding: .5rem .7rem; font-size: .85rem; color: #cfd9e8; }
+.picker .list button:hover { background: rgba(255,255,255,.07); }
+
+.progress { height: 6px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
+.progress > i { display: block; height: 100%; background: #10b981; transition: width .3s; }
+
+.hint-box { background: rgba(96,165,250,.09); border: 1px solid rgba(96,165,250,.25); border-radius: .6rem; padding: .7rem .9rem; font-size: .82rem; color: #bcd3f5; }
+.warn-box { background: rgba(251,191,36,.09); border: 1px solid rgba(251,191,36,.28); border-radius: .6rem; padding: .7rem .9rem; font-size: .82rem; color: #fde68a; }
+
+.tabs { display: flex; gap: .3rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.tabs button { padding: .4rem .8rem; border-radius: .5rem; font-size: .82rem; color: #9fb0c6; background: rgba(255,255,255,.05); }
+.tabs button.active { background: rgba(16,185,129,.16); color: #34d399; font-weight: 700; }
+
+.kv { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; border-bottom: 1px dashed rgba(255,255,255,.07); font-size: .85rem; }
+.kv:last-child { border-bottom: 0; }
+
+.scroll-y { overflow-y: auto; }
+.hidden { display: none !important; }
+
+@media (max-width: 860px) {
+    .admin-nav { width: 60px; padding: .5rem .35rem; }
+    .admin-nav button span.lbl { display: none; }
+    .admin-nav .navgroup { display: none; }
+    .admin-nav button { justify-content: center; }
+    .admin-body { flex-direction: column; }
+}
+
+/* Indikator offline di tampilan */
+.tv .offline-badge {
+    position: absolute; left: 1.6rem; bottom: 6.4rem; z-index: 6;
+    display: inline-flex; align-items: center; gap: .6rem;
+    background: rgba(178, 34, 34, .88); color: #fff;
+    padding: .5rem 1.1rem; border-radius: 999px; font-size: 1.3rem; font-weight: 700;
+    box-shadow: 0 0.4rem 1.2rem rgba(0,0,0,.35);
+}
+.tv .offline-badge .dot { width: .7rem; height: .7rem; border-radius: 50%; background: #ffd7d7; animation: pulseToday 1.6s ease-in-out infinite; }
+@media (max-width: 900px) { .hidden-sm { display: none !important; } }
+
+/* Toast diletakkan di akar aplikasi */
+.toasts { position: fixed; right: 1rem; bottom: 1rem; z-index: 500; display: flex; flex-direction: column; gap: .5rem; pointer-events: none; }
+
+/* Layar sempit / potret untuk tampilan utama */
+@media (max-aspect-ratio: 1/1) {
+    .topbar .row1 { grid-template-columns: 1fr; text-align: center; gap: .6rem; }
+    .clock { justify-content: center; }
+    .dates { text-align: center; }
+    .prayers { flex-wrap: wrap; }
+    .prayer { flex: 1 1 28%; }
+    .prayer .p-time { font-size: 2.2rem; }
+    .mosque-name { font-size: 1.8rem; }
+}

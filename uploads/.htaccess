@@ -1,0 +1,12 @@
+# Berkas unggahan tidak boleh dieksekusi sebagai skrip
+<FilesMatch "\.(php|php3|php4|php5|php7|phtml|pl|py|cgi|asp|aspx|sh|shtml)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Content-Security-Policy "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'"
+</IfModule>
+
+Options -Indexes -ExecCGI
+AddType text/plain .php .phtml .php3 .php4 .php5 .php7

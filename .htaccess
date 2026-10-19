@@ -1,0 +1,70 @@
+# ============================================================
+#  Jam Jadwal Sholat — konfigurasi Apache
+# ============================================================
+
+# Jenis MIME tambahan
+AddType application/manifest+json .webmanifest
+AddType application/json .json
+AddType audio/wav .wav
+AddType video/webm .webm
+AddType image/webp .webp
+AddType image/avif .avif
+
+# Jangan tampilkan daftar berkas
+Options -Indexes
+
+# Jangan layani berkas tersembunyi & berkas basis data
+<FilesMatch "\.(sqlite|sqlite3|db|sqlite-wal|sqlite-shm)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^\.(?!well-known)">
+    Require all denied
+</FilesMatch>
+
+# Blokir berkas sensitif
+<FilesMatch "^(_|\.)">
+    Require all denied
+</FilesMatch>
+
+# --- Penyimpanan cache ---
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg        "access plus 30 days"
+    ExpiresByType image/png         "access plus 30 days"
+    ExpiresByType image/webp        "access plus 30 days"
+    ExpiresByType image/avif        "access plus 30 days"
+    ExpiresByType audio/wav         "access plus 30 days"
+    ExpiresByType video/mp4         "access plus 30 days"
+    ExpiresByType video/webm        "access plus 30 days"
+    ExpiresByType text/css          "access plus 7 days"
+    ExpiresByType text/javascript   "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    # Service worker & HTML tidak boleh di-cache lama
+    ExpiresByType text/html         "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_headers.c>
+    # Service worker selalu diperbarui
+    <FilesMatch "sw\.js$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </FilesMatch>
+    <FilesMatch "\.(html|webmanifest)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+    <FilesMatch "\.(js|css)$">
+        # Kompatibel: Apache 2.4 + mod_headers
+        Header set X-Content-Type-Options "nosniff"
+    </FilesMatch>
+</IfModule>
+
+# --- Kompresi ---
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json application/manifest+json image/svg+xml
+</IfModule>
+
+# --- Batas unggahan (disarankan) ---
+<IfModule mod_php.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 260M
+    php_value max_execution_time 300
+</IfModule>
